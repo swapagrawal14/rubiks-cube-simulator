@@ -3,72 +3,301 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Rubik's Cube Simulator</title>
-    <link rel="stylesheet" href="style.css">
+    <title>Definitive 3D Rubik's Cube Simulator</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="script.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap');
+        :root {
+            --bg-color: #1a1a2e; --primary-color: #16213e; --secondary-color: #0f3460; --accent-color: #e94560;
+            --text-color: #e0e0e0; --font-family: 'Poppins', sans-serif; --cube-size: 200px;
+            --cubie-size: calc(var(--cube-size) / 3); --gap: 2px;
+            --color-u: white; --color-d: #ffd500; --color-l: #ff5800; --color-r: #b71234; --color-f: #009b48; --color-b: #0046ad;
+            --color-inside: #222;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: var(--font-family); background-color: var(--bg-color); color: var(--text-color);
+            display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 2rem; overflow-x: hidden;
+        }
+        .container { width: 100%; max-width: 1200px; text-align: center; }
+        header h1 { font-size: 2.5rem; font-weight: 600; color: var(--accent-color); margin-bottom: 0.5rem; }
+        header p { font-size: 1.1rem; opacity: 0.8; }
+        .main-content { display: flex; justify-content: center; align-items: center; gap: 3rem; margin-top: 3rem; flex-wrap: wrap; }
+        .cube-container { flex-shrink: 0; cursor: grab; }
+        .cube-container:active { cursor: grabbing; }
+        .scene { width: var(--cube-size); height: var(--cube-size); perspective: calc(var(--cube-size) * 4); }
+        .cube { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transform: rotateX(-30deg) rotateY(-45deg); transition: transform 0.2s linear; }
+        .cubie { position: absolute; width: var(--cubie-size); height: var(--cubie-size); transform-style: preserve-3d; }
+        .face {
+            position: absolute; width: calc(var(--cubie-size) - var(--gap)); height: calc(var(--cubie-size) - var(--gap));
+            background-color: var(--color-inside); border: 1px solid rgba(0, 0, 0, 0.5); border-radius: 4px;
+        }
+        .face.front  { transform: rotateY(0deg)   translateZ(calc(var(--cubie-size) / 2)); }
+        .face.back   { transform: rotateY(180deg) translateZ(calc(var(--cubie-size) / 2)); }
+        .face.right  { transform: rotateY(90deg)  translateZ(calc(var(--cubie-size) / 2)); }
+        .face.left   { transform: rotateY(-90deg) translateZ(calc(var(--cubie-size) / 2)); }
+        .face.top    { transform: rotateX(90deg)  translateZ(calc(var(--cubie-size) / 2)); }
+        .face.bottom { transform: rotateX(-90deg) translateZ(calc(var(--cubie-size) / 2)); }
+
+        .controls-and-info { display: flex; flex-direction: column; gap: 1.5rem; min-width: 380px; }
+        .info-panel { display: flex; justify-content: space-around; gap: 1rem; background-color: var(--primary-color); padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .info-item { text-align: center; }
+        .info-item i { font-size: 1.5rem; color: var(--accent-color); margin-bottom: 0.5rem; }
+        .info-item span { display: block; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; }
+        .info-item p { font-size: 1.8rem; font-weight: 600; margin-top: 0.2rem; min-width: 120px; }
+        .controls { background-color: var(--primary-color); padding: 1.5rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .control-section h3 { margin-bottom: 1rem; color: var(--accent-color); border-bottom: 1px solid var(--secondary-color); padding-bottom: 0.5rem; font-weight: 400; }
+        .button-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(50px, 1fr)); gap: 0.5rem; }
+        .move-btn, .action-btn { font-family: var(--font-family); padding: 0.75rem; font-size: 1rem; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; background-color: var(--secondary-color); color: var(--text-color); }
+        .move-btn:hover, .action-btn:hover:not(:disabled) { background-color: var(--accent-color); color: var(--bg-color); transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+        .action-btn { grid-column: 1 / -1; background-color: var(--accent-color); color: #fff; }
+        .action-btn.solve-btn { background-color: #28a745; }
+        .action-btn.solve-btn:hover:not(:disabled) { background-color: #218838; }
+        .action-btn:disabled { background-color: #555; cursor: not-allowed; transform: none; box-shadow: none; opacity: 0.5; }
+        
+        footer { margin-top: 3rem; opacity: 0.6; }
+        @media (max-width: 900px) { body { padding: 1rem; } .main-content { flex-direction: column; align-items: center; } .controls-and-info { width: 100%; max-width: 500px; margin-top: 2rem; } :root { --cube-size: 180px; } header h1 { font-size: 2rem; } }
+    </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Rubik's Cube Simulator</h1>
-            <p>Drag to rotate the cube. Use buttons or keys to turn faces.</p>
+            <h1>Definitive 3D Rubik's Cube Simulator</h1>
+            <p>Drag to rotate. Use buttons, keys, or the AI Solver!</p>
         </header>
 
         <main class="main-content">
-            <div class="cube-container">
+            <div class="cube-container" id="cube-container">
                 <div class="scene">
-                    <div class="cube" id="cube">
-                        <!-- Cubies will be generated by JavaScript -->
-                    </div>
+                    <div class="cube" id="cube"></div>
                 </div>
             </div>
 
             <div class="controls-and-info">
                 <div class="info-panel">
-                    <div class="info-item">
-                        <i class="fas fa-clock"></i>
-                        <span>Time</span>
-                        <p id="timer">00:00.0</p>
-                    </div>
-                    <div class="info-item">
-                        <i class="fas fa-arrows-spin"></i>
-                        <span>Moves</span>
-                        <p id="move-count">0</p>
-                    </div>
+                    <div class="info-item"><i class="fas fa-clock"></i><span>Time</span><p id="timer">00:00.0</p></div>
+                    <div class="info-item"><i class="fas fa-arrows-spin"></i><span>Moves</span><p id="move-count">0</p></div>
                 </div>
 
                 <div class="controls">
                     <div class="control-section">
                         <h3>Face Rotations</h3>
                         <div class="button-group">
-                            <button class="move-btn" data-move="U">U</button>
-                            <button class="move-btn" data-move="U'">U'</button>
-                            <button class="move-btn" data-move="D">D</button>
-                            <button class="move-btn" data-move="D'">D'</button>
-                            <button class="move-btn" data-move="L">L</button>
-                            <button class="move-btn" data-move="L'">L'</button>
-                            <button class="move-btn" data-move="R">R</button>
-                            <button class="move-btn" data-move="R'">R'</button>
-                            <button class="move-btn" data-move="F">F</button>
-                            <button class="move-btn" data-move="F'">F'</button>
-                            <button class="move-btn" data-move="B">B</button>
-                            <button class="move-btn" data-move="B'">B'</button>
+                            <button class="move-btn" data-move="U">U</button><button class="move-btn" data-move="U'">U'</button>
+                            <button class="move-btn" data-move="D">D</button><button class="move-btn" data-move="D'">D'</button>
+                            <button class="move-btn" data-move="L">L</button><button class="move-btn" data-move="L'">L'</button>
+                            <button class="move-btn" data-move="R">R</button><button class="move-btn" data-move="R'">R'</button>
+                            <button class="move-btn" data-move="F">F</button><button class="move-btn" data-move="F'">F'</button>
+                            <button class="move-btn" data-move="B">B</button><button class="move-btn" data-move="B'">B'</button>
                         </div>
                     </div>
                     <div class="control-section">
                         <h3>Cube Actions</h3>
                         <div class="button-group">
                             <button class="action-btn" id="scramble-btn"><i class="fas fa-random"></i> Scramble</button>
+                            <button class="action-btn solve-btn" id="solve-btn"><i class="fas fa-robot"></i> AI Solve</button>
                             <button class="action-btn" id="reset-btn"><i class="fas fa-redo"></i> Reset</button>
                         </div>
                     </div>
                 </div>
             </div>
         </main>
-        <footer>
-            <p>Built with ❤️ and pure CSS/JS. Check the keyboard shortcuts in the README!</p>
-        </footer>
     </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const get = (id) => document.getElementById(id);
+        const cubeEl = get('cube'), timerEl = get('timer'), moveCountEl = get('move-count'),
+              scrambleBtn = get('scramble-btn'), solveBtn = get('solve-btn'), resetBtn = get('reset-btn'),
+              cubeContainer = get('cube-container');
+
+        let cubies = [], moveHistory = [], moveQueue = [];
+        let isDragging = false, isAnimating = false, isSolved = true;
+        let startX, startY, currentX = -30, currentY = -45;
+        let moveCount = 0, time = 0, timerInterval;
+        
+        const animationSpeed = 200;
+        const CUBE_SIZE_VAL = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cube-size'));
+        const CUBIE_SIZE = CUBE_SIZE_VAL / 3;
+        const MOVES = {
+            'U': { axis: 'y', slice: -1, dir: 1 }, 'U\'': { axis: 'y', slice: -1, dir: -1 },
+            'D': { axis: 'y', slice: 1, dir: -1 }, 'D\'': { axis: 'y', slice: 1, dir: 1 },
+            'L': { axis: 'x', slice: -1, dir: -1 }, 'L\'': { axis: 'x', slice: -1, dir: 1 },
+            'R': { axis: 'x', slice: 1, dir: 1 }, 'R\'': { axis: 'x', slice: 1, dir: -1 },
+            'F': { axis: 'z', slice: 1, dir: 1 }, 'F\'': { axis: 'z', slice: 1, dir: -1 },
+            'B': { axis: 'z', slice: -1, dir: -1 }, 'B\'': { axis: 'z', slice: -1, dir: 1 }
+        };
+
+        function createCubie(x, y, z) {
+            const element = document.createElement('div');
+            element.className = 'cubie';
+            ['front', 'back', 'top', 'bottom', 'left', 'right'].forEach(faceName => {
+                const face = document.createElement('div');
+                face.className = `face ${faceName}`;
+                if (faceName === 'front' && z === 1) face.style.backgroundColor = 'var(--color-f)';
+                else if (faceName === 'back' && z === -1) face.style.backgroundColor = 'var(--color-b)';
+                else if (faceName === 'top' && y === -1) face.style.backgroundColor = 'var(--color-u)';
+                else if (faceName === 'bottom' && y === 1) face.style.backgroundColor = 'var(--color-d)';
+                else if (faceName === 'left' && x === -1) face.style.backgroundColor = 'var(--color-l)';
+                else if (faceName === 'right' && x === 1) face.style.backgroundColor = 'var(--color-r)';
+                element.appendChild(face);
+            });
+            element.style.transform = `translateX(${x * CUBIE_SIZE}px) translateY(${y * CUBIE_SIZE}px) translateZ(${z * CUBIE_SIZE}px)`;
+            return { element, x, y, z };
+        }
+
+        function createCube() {
+            cubeEl.innerHTML = '';
+            cubies = [];
+            for (let x = -1; x <= 1; x++) for (let y = -1; y <= 1; y++) for (let z = -1; z <= 1; z++) {
+                if (x === 0 && y === 0 && z === 0) continue;
+                cubies.push(createCubie(x, y, z));
+            }
+            cubies.forEach(c => cubeEl.appendChild(c.element));
+        }
+
+        function processMoveQueue() {
+            if (isAnimating || moveQueue.length === 0) return;
+            isAnimating = true;
+            toggleControls(false);
+
+            const move = moveQueue.shift();
+
+            if (isSolved && !move.isScramble) {
+                startTimer();
+                isSolved = false;
+            }
+
+            if (!move.isScramble) {
+                 moveCount++; moveCountEl.textContent = moveCount;
+            }
+
+            const { axis, slice, dir } = MOVES[move.notation];
+            const sliceCubies = cubies.filter(c => Math.abs(c[axis] - slice) < 0.1);
+            
+            const pivot = document.createElement('div');
+            pivot.style.transformStyle = 'preserve-3d';
+            sliceCubies.forEach(cubie => pivot.appendChild(cubie.element));
+            cubeEl.appendChild(pivot);
+            
+            pivot.style.transition = `transform ${animationSpeed / 1000}s ease-in-out`;
+            pivot.style.transform = `rotate${axis.toUpperCase()}(${dir * 90}deg)`;
+            
+            setTimeout(() => {
+                sliceCubies.forEach(cubie => {
+                    // --- THE DEFINITIVE FIX FOR STATE & ROTATION ---
+                    // 1. Get the final computed matrix of the cubie after pivot rotation
+                    const style = window.getComputedStyle(cubie.element);
+                    const matrix = new DOMMatrix(style.transform);
+                    
+                    // 2. Put cubie back into the main cube
+                    cubeEl.appendChild(cubie.element);
+                    
+                    // 3. Bake the new transform into the cubie's own style
+                    cubie.element.style.transform = matrix.toString();
+
+                    // 4. Update the cubie's logical coordinates
+                    const { x, y, z } = cubie;
+                    const rad = dir * Math.PI / 2;
+                    if (axis === 'x') {
+                        cubie.y = Math.round(y * Math.cos(rad) - z * Math.sin(rad));
+                        cubie.z = Math.round(y * Math.sin(rad) + z * Math.cos(rad));
+                    } else if (axis === 'y') {
+                        cubie.x = Math.round(x * Math.cos(rad) + z * Math.sin(rad));
+                        cubie.z = Math.round(z * Math.cos(rad) - x * Math.sin(rad));
+                    } else { // z
+                        cubie.x = Math.round(x * Math.cos(rad) - y * Math.sin(rad));
+                        cubie.y = Math.round(x * Math.sin(rad) + y * Math.cos(rad));
+                    }
+                });
+                
+                cubeEl.removeChild(pivot);
+                
+                isAnimating = false;
+                toggleControls(true);
+
+                if (moveHistory.length === 0 && !isSolved) {
+                    isSolved = true;
+                    stopTimer();
+                    if (confetti) confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
+                }
+                
+                processMoveQueue();
+            }, animationSpeed + 10); // A small buffer
+        }
+        
+        function addMove(notation, isScramble = false) {
+            if (isAnimating) return;
+            if (!isScramble) {
+                moveHistory.push(notation);
+            }
+            moveQueue.push({ notation, isScramble });
+            if (!isAnimating) processMoveQueue();
+        }
+
+        function scramble() {
+            if (isAnimating) return;
+            reset();
+            const moves = Object.keys(MOVES);
+            for (let i = 0; i < 25; i++) {
+                addMove(moves[Math.floor(Math.random() * moves.length)], true);
+            }
+        }
+        
+        function getInverseMove(move) {
+            return move.includes("'") ? move.slice(0, 1) : `${move}'`;
+        }
+
+        function solve() {
+            if (isAnimating || isSolved) return;
+            const solutionMoves = moveHistory.reverse().map(getInverseMove);
+            moveHistory = [];
+            solutionMoves.forEach(move => addMove(move, true)); 
+        }
+
+        function reset() {
+            if (isAnimating) return;
+            stopTimer();
+            moveQueue = []; moveHistory = []; isAnimating = false;
+            toggleControls(true); createCube(); isSolved = true;
+            moveCount = 0; moveCountEl.textContent = '0'; resetTimer();
+        }
+        
+        function toggleControls(enable) {
+            document.querySelectorAll('.move-btn, .action-btn').forEach(b => b.disabled = !enable);
+            if (enable) solveBtn.disabled = isSolved;
+        }
+        
+        function startTimer() { stopTimer(); const startTime = Date.now() - time; timerInterval = setInterval(() => { time = Date.now() - startTime; timerEl.textContent = formatTime(time); }, 100); }
+        function stopTimer() { clearInterval(timerInterval); }
+        function resetTimer() { stopTimer(); time = 0; timerEl.textContent = '00:00.0'; }
+        function formatTime(ms) { const m = Math.floor(ms / 60000); const s = Math.floor((ms % 60000) / 1000); const t = Math.floor((ms % 1000) / 100); return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${t}`; }
+
+        // MOUSE DRAG ROTATION EVENT LISTENERS
+        cubeContainer.addEventListener('mousedown', e => { if (isAnimating) return; isDragging = true; startX = e.clientX; startY = e.clientY; cubeEl.style.transition = 'none'; });
+        window.addEventListener('mousemove', e => { if (!isDragging) return; const dx = e.clientX - startX; const dy = e.clientY - startY; currentY += dx * 0.5; currentX -= dy * 0.5; cubeEl.style.transform = `rotateX(${currentX}deg) rotateY(${currentY}deg)`; startX = e.clientX; startY = e.clientY; });
+        window.addEventListener('mouseup', () => { if (isDragging) { isDragging = false; cubeEl.style.transition = 'transform 0.2s linear'; } });
+        window.addEventListener('mouseleave', () => { if (isDragging) { isDragging = false; cubeEl.style.transition = 'transform 0.2s linear'; }});
+        
+        // BUTTONS & KEYS EVENT LISTENERS
+        document.querySelectorAll('.move-btn').forEach(b => b.addEventListener('click', () => addMove(b.dataset.move)));
+        scrambleBtn.addEventListener('click', scramble);
+        solveBtn.addEventListener('click', solve);
+        resetBtn.addEventListener('click', reset);
+
+        window.addEventListener('keydown', e => {
+            if (isAnimating) return;
+            const move = e.key.toUpperCase();
+            if (e.shiftKey) { if (MOVES[`${move}'`]) addMove(`${move}'`); }
+            else { if (MOVES[move]) addMove(move); }
+        });
+
+        // Initialisation
+        createCube();
+        toggleControls(true);
+    });
+    </script>
 </body>
 </html>
