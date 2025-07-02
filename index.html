@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Definitive 3D Rubik's Cube Simulator</title>
+    <title>The Ultimate 3D Rubik's Cube Simulator</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
@@ -64,7 +64,7 @@
 <body>
     <div class="container">
         <header>
-            <h1>Definitive 3D Rubik's Cube Simulator</h1>
+            <h1>The Ultimate 3D Rubik's Cube Simulator</h1>
             <p>Drag to rotate. Use buttons, keys, or the AI Solver!</p>
         </header>
 
@@ -136,12 +136,16 @@
             ['front', 'back', 'top', 'bottom', 'left', 'right'].forEach(faceName => {
                 const face = document.createElement('div');
                 face.className = `face ${faceName}`;
-                if (faceName === 'front' && z === 1) face.style.backgroundColor = 'var(--color-f)';
-                else if (faceName === 'back' && z === -1) face.style.backgroundColor = 'var(--color-b)';
-                else if (faceName === 'top' && y === -1) face.style.backgroundColor = 'var(--color-u)';
-                else if (faceName === 'bottom' && y === 1) face.style.backgroundColor = 'var(--color-d)';
-                else if (faceName === 'left' && x === -1) face.style.backgroundColor = 'var(--color-l)';
-                else if (faceName === 'right' && x === 1) face.style.backgroundColor = 'var(--color-r)';
+                // --- DEFINITIVE COLORING FIX ---
+                // This logic correctly colors only the outer-facing stickers.
+                let color = 'var(--color-inside)';
+                if (faceName === 'front' && z === 1) color = 'var(--color-f)';
+                else if (faceName === 'back' && z === -1) color = 'var(--color-b)';
+                else if (faceName === 'top' && y === -1) color = 'var(--color-u)';
+                else if (faceName === 'bottom' && y === 1) color = 'var(--color-d)';
+                else if (faceName === 'left' && x === -1) color = 'var(--color-l)';
+                else if (faceName === 'right' && x === 1) color = 'var(--color-r)';
+                face.style.backgroundColor = color;
                 element.appendChild(face);
             });
             element.style.transform = `translateX(${x * CUBIE_SIZE}px) translateY(${y * CUBIE_SIZE}px) translateZ(${z * CUBIE_SIZE}px)`;
@@ -171,7 +175,7 @@
             }
 
             if (!move.isScramble) {
-                 moveCount++; moveCountEl.textContent = moveCount;
+                moveCount++; moveCountEl.textContent = moveCount;
             }
 
             const { axis, slice, dir } = MOVES[move.notation];
@@ -187,18 +191,11 @@
             
             setTimeout(() => {
                 sliceCubies.forEach(cubie => {
-                    // --- THE DEFINITIVE FIX FOR STATE & ROTATION ---
-                    // 1. Get the final computed matrix of the cubie after pivot rotation
                     const style = window.getComputedStyle(cubie.element);
                     const matrix = new DOMMatrix(style.transform);
-                    
-                    // 2. Put cubie back into the main cube
                     cubeEl.appendChild(cubie.element);
-                    
-                    // 3. Bake the new transform into the cubie's own style
                     cubie.element.style.transform = matrix.toString();
 
-                    // 4. Update the cubie's logical coordinates
                     const { x, y, z } = cubie;
                     const rad = dir * Math.PI / 2;
                     if (axis === 'x') {
@@ -214,7 +211,6 @@
                 });
                 
                 cubeEl.removeChild(pivot);
-                
                 isAnimating = false;
                 toggleControls(true);
 
@@ -225,14 +221,12 @@
                 }
                 
                 processMoveQueue();
-            }, animationSpeed + 10); // A small buffer
+            }, animationSpeed + 10);
         }
         
         function addMove(notation, isScramble = false) {
             if (isAnimating) return;
-            if (!isScramble) {
-                moveHistory.push(notation);
-            }
+            if (!isScramble) moveHistory.push(notation);
             moveQueue.push({ notation, isScramble });
             if (!isAnimating) processMoveQueue();
         }
@@ -275,13 +269,11 @@
         function resetTimer() { stopTimer(); time = 0; timerEl.textContent = '00:00.0'; }
         function formatTime(ms) { const m = Math.floor(ms / 60000); const s = Math.floor((ms % 60000) / 1000); const t = Math.floor((ms % 1000) / 100); return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${t}`; }
 
-        // MOUSE DRAG ROTATION EVENT LISTENERS
         cubeContainer.addEventListener('mousedown', e => { if (isAnimating) return; isDragging = true; startX = e.clientX; startY = e.clientY; cubeEl.style.transition = 'none'; });
         window.addEventListener('mousemove', e => { if (!isDragging) return; const dx = e.clientX - startX; const dy = e.clientY - startY; currentY += dx * 0.5; currentX -= dy * 0.5; cubeEl.style.transform = `rotateX(${currentX}deg) rotateY(${currentY}deg)`; startX = e.clientX; startY = e.clientY; });
         window.addEventListener('mouseup', () => { if (isDragging) { isDragging = false; cubeEl.style.transition = 'transform 0.2s linear'; } });
         window.addEventListener('mouseleave', () => { if (isDragging) { isDragging = false; cubeEl.style.transition = 'transform 0.2s linear'; }});
         
-        // BUTTONS & KEYS EVENT LISTENERS
         document.querySelectorAll('.move-btn').forEach(b => b.addEventListener('click', () => addMove(b.dataset.move)));
         scrambleBtn.addEventListener('click', scramble);
         solveBtn.addEventListener('click', solve);
@@ -294,7 +286,6 @@
             else { if (MOVES[move]) addMove(move); }
         });
 
-        // Initialisation
         createCube();
         toggleControls(true);
     });
